@@ -1,0 +1,66 @@
+.dashboard-container {
+  padding: 20px;
+}
+
+.summary-card {
+  text-align: center;
+  padding: 15px;
+  height: 100%;
+  background-color: #f8f9fa;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.summary-card .card-title {
+  color: #6c757d;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.summary-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #0d6efd;
+  margin: 0;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* Style for items list in sales table */
+.table ul {
+  margin: 0;
+  padding: 0;
+}
+
+.table ul li {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.table ul li:last-child {
+  margin-bottom: 0;
+}
+
+/* Card headers */
+.card-header h5 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Low stock warning */
+.text-danger {
+  font-weight: bold;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.9rem;
+  }
+  
+  .summary-number {
+    font-size: 1.5rem;
+  }
+}
