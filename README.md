@@ -173,5 +173,3 @@ VITE_API_URL=http://localhost:5000
 
 This project is licensed under the MIT License - see the LICENSE file for details
 
-## Check this
-https://mobile-inventory-frontend.vercel.app/login
