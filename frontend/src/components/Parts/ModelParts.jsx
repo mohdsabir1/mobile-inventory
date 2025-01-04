@@ -12,9 +12,17 @@ const ModelParts = () => {
   const [model, setModel] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [newPart, setNewPart] = useState({ type: '', price: '', quantity: '' });
+  const [newPart, setNewPart] = useState({ 
+    name: '',
+    type: '', 
+    price: '', 
+    quantity: '',
+    category: ''
+  });
   const [editingPart, setEditingPart] = useState(null);
   const [deletingPart, setDeletingPart] = useState(null);
+  const [partTypes, setPartTypes] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState('');
   const { modelId } = useParams();
   const navigate = useNavigate();
   const { canAdd, canEdit, canDelete } = useAuth();
@@ -26,6 +34,7 @@ const ModelParts = () => {
   useEffect(() => {
     fetchModel();
     fetchParts();
+    fetchPartTypes();
   }, [modelId]);
 
   const fetchModel = async () => {
@@ -46,15 +55,40 @@ const ModelParts = () => {
     }
   };
 
+  const fetchPartTypes = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/part-types`);
+      setPartTypes(response.data);
+    } catch (error) {
+      console.error('Error fetching part types:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const partData = {
+        name: newPart.type, // Using type as name since they represent the same thing
+        type: newPart.type,
+        price: Number(newPart.price),
+        quantity: Number(newPart.quantity),
+        model: modelId,
+        category: model.category._id // Get category from the current model
+      };
+
       if (editingPart) {
-        await axios.put(`${API_URL}/parts/${editingPart._id}`, newPart);
+        await axios.put(`${API_URL}/parts/${editingPart._id}`, partData);
       } else {
-        await axios.post(`${API_URL}/parts`, { ...newPart, modelId });
+        await axios.post(`${API_URL}/parts`, partData);
       }
-      setNewPart({ type: '', price: '', quantity: '' });
+      setNewPart({ 
+        name: '',
+        type: '', 
+        price: '', 
+        quantity: '',
+        category: ''
+      });
+      setSelectedCategory('');
       setIsModalOpen(false);
       setEditingPart(null);
       fetchParts();
@@ -65,10 +99,13 @@ const ModelParts = () => {
 
   const handleEdit = (part) => {
     setEditingPart(part);
+    setSelectedCategory(part.category?.name || '');
     setNewPart({
+      name: part.name,
       type: part.type,
       price: part.price,
-      quantity: part.quantity
+      quantity: part.quantity,
+      category: part.category?._id
     });
     setIsModalOpen(true);
   };
@@ -108,7 +145,13 @@ const ModelParts = () => {
           <button
             onClick={() => {
               setEditingPart(null);
-              setNewPart({ type: '', price: '', quantity: '' });
+              setNewPart({ 
+                name: '',
+                type: '', 
+                price: '', 
+                quantity: '',
+                category: ''
+              });
               setIsModalOpen(true);
             }}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
@@ -159,50 +202,81 @@ const ModelParts = () => {
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    setNewPart(prev => ({ ...prev, type: '' }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select Category</option>
+                  {Object.keys(partTypes).map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Part Type
                 </label>
-                <input
-                  type="text"
-                  id="type"
+                <select
                   value={newPart.type}
                   onChange={(e) => setNewPart({ ...newPart, type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
-                />
+                  disabled={!selectedCategory}
+                >
+                  <option value="">Select Part Type</option>
+                  {selectedCategory && partTypes[selectedCategory]?.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
               </div>
+
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Price
                 </label>
                 <input
                   type="number"
-                  id="price"
                   value={newPart.price}
                   onChange={(e) => setNewPart({ ...newPart, price: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  min="0"
                 />
               </div>
+
               <div>
-                <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Quantity
                 </label>
                 <input
                   type="number"
-                  id="quantity"
                   value={newPart.quantity}
                   onChange={(e) => setNewPart({ ...newPart, quantity: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  min="0"
                 />
               </div>
             </div>
-            <div className="flex justify-end space-x-2 mt-6">
+
+            <div className="mt-6 flex justify-end space-x-2">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Cancel
               </button>
@@ -210,7 +284,7 @@ const ModelParts = () => {
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {editingPart ? 'Update' : 'Add'}
+                {editingPart ? 'Update' : 'Add'} Part
               </button>
             </div>
           </form>
