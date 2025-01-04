@@ -4,13 +4,16 @@ import { FaMobile, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
 import Modal from '../common/Modal';
+import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 import { useAuth } from '../../context/AuthContext';
 
 const MobileList = () => {
   const [categories, setCategories] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '' });
   const [editingCategory, setEditingCategory] = useState(null);
+  const [deletingCategory, setDeletingCategory] = useState(null);
   const { canAdd, canEdit, canDelete } = useAuth();
 
   const canAddMobiles = canAdd('mobiles');
@@ -54,14 +57,19 @@ const MobileList = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await axios.delete(`${API_URL}/categories/${id}`);
-        fetchCategories();
-      } catch (error) {
-        console.error('Error deleting category:', error);
-      }
+    try {
+      await axios.delete(`${API_URL}/categories/${id}`);
+      setIsDeleteModalOpen(false);
+      setDeletingCategory(null);
+      fetchCategories();
+    } catch (error) {
+      console.error('Error deleting category:', error);
     }
+  };
+
+  const openDeleteModal = (category) => {
+    setDeletingCategory(category);
+    setIsDeleteModalOpen(true);
   };
 
   return (
@@ -102,8 +110,8 @@ const MobileList = () => {
                 )}
                 {canDeleteMobiles && (
                   <button
-                    onClick={() => handleDelete(category._id)}
-                    className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                    onClick={() => openDeleteModal(category)}
+                    className="text-red-600 hover:text-red-800 ml-2"
                   >
                     <FaTrash />
                   </button>
@@ -157,6 +165,14 @@ const MobileList = () => {
           </form>
         </div>
       </Modal>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => handleDelete(deletingCategory?._id)}
+        itemName={deletingCategory?.name}
+        itemType="category"
+      />
     </div>
   );
 };

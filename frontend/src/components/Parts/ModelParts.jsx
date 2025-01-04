@@ -4,14 +4,17 @@ import { FaArrowLeft, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
 import Modal from '../common/Modal';
+import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 import { useAuth } from '../../context/AuthContext';
 
 const ModelParts = () => {
   const [parts, setParts] = useState([]);
   const [model, setModel] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newPart, setNewPart] = useState({ type: '', price: '', quantity: '' });
   const [editingPart, setEditingPart] = useState(null);
+  const [deletingPart, setDeletingPart] = useState(null);
   const { modelId } = useParams();
   const navigate = useNavigate();
   const { canAdd, canEdit, canDelete } = useAuth();
@@ -71,14 +74,19 @@ const ModelParts = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this part?')) {
-      try {
-        await axios.delete(`${API_URL}/parts/${id}`);
-        fetchParts();
-      } catch (error) {
-        console.error('Error deleting part:', error);
-      }
+    try {
+      await axios.delete(`${API_URL}/parts/${id}`);
+      setIsDeleteModalOpen(false);
+      setDeletingPart(null);
+      fetchParts();
+    } catch (error) {
+      console.error('Error deleting part:', error);
     }
+  };
+
+  const openDeleteModal = (part) => {
+    setDeletingPart(part);
+    setIsDeleteModalOpen(true);
   };
 
   return (
@@ -127,8 +135,8 @@ const ModelParts = () => {
                 )}
                 {canDeleteParts && (
                   <button
-                    onClick={() => handleDelete(part._id)}
-                    className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                    onClick={() => openDeleteModal(part)}
+                    className="text-red-600 hover:text-red-800 ml-2"
                   >
                     <FaTrash />
                   </button>
@@ -208,6 +216,14 @@ const ModelParts = () => {
           </form>
         </div>
       </Modal>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => handleDelete(deletingPart?._id)}
+        itemName={deletingPart?.type}
+        itemType="part"
+      />
     </div>
   );
 };

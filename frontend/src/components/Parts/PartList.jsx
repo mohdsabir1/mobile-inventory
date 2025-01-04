@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaTools, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 
 const API_URL = 'http://localhost:3000/api';
 
@@ -20,8 +21,10 @@ const PartList = () => {
     threshold: ''
   });
   const [editingPart, setEditingPart] = useState(null);
+  const [deletingPart, setDeletingPart] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [partTypes, setPartTypes] = useState({});
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -108,14 +111,19 @@ const PartList = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this part?')) {
-      try {
-        await axios.delete(`${API_URL}/parts/${id}`);
-        fetchData();
-      } catch (error) {
-        console.error('Error deleting part:', error);
-      }
+    try {
+      await axios.delete(`${API_URL}/parts/${id}`);
+      setIsDeleteModalOpen(false);
+      setDeletingPart(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting part:', error);
     }
+  };
+
+  const openDeleteModal = (part) => {
+    setDeletingPart(part);
+    setIsDeleteModalOpen(true);
   };
 
   const handleSpecificationChange = (key, value) => {
@@ -428,7 +436,7 @@ const PartList = () => {
                         <FaEdit />
                       </button>
                       <button
-                        onClick={() => handleDelete(part._id)}
+                        onClick={() => openDeleteModal(part)}
                         className="text-red-600 hover:text-red-900"
                       >
                         <FaTrash />
@@ -441,6 +449,14 @@ const PartList = () => {
           </div>
         </div>
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => handleDelete(deletingPart?._id)}
+        itemName={deletingPart?.type}
+        itemType="part"
+      />
     </div>
   );
 };

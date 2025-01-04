@@ -4,14 +4,18 @@ import { FaArrowLeft, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
 import Modal from '../common/Modal';
+import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 import { useAuth } from '../../context/AuthContext';
 
 const CategoryModels = () => {
   const [models, setModels] = useState([]);
   const [category, setCategory] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newModel, setNewModel] = useState({ name: '' });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [newModel, setNewModel] = useState({ name: '', description: '' });
   const [editingModel, setEditingModel] = useState(null);
+  const [deletingModel, setDeletingModel] = useState(null);
+  const [modalMode, setModalMode] = useState('add'); // 'add', 'edit', or 'delete'
   const { categoryId } = useParams();
   const navigate = useNavigate();
   const { canAdd, canEdit, canDelete } = useAuth();
@@ -49,9 +53,13 @@ const CategoryModels = () => {
       if (editingModel) {
         await axios.put(`${API_URL}/models/${editingModel._id}`, newModel);
       } else {
-        await axios.post(`${API_URL}/models`, { ...newModel, categoryId });
+        await axios.post(`${API_URL}/models`, { 
+          name: newModel.name,
+          category: categoryId,
+          description: newModel.description || ''
+        });
       }
-      setNewModel({ name: '' });
+      setNewModel({ name: '', description: '' });
       setIsModalOpen(false);
       setEditingModel(null);
       fetchModels();
@@ -60,21 +68,32 @@ const CategoryModels = () => {
     }
   };
 
-  const handleEdit = (model) => {
-    setEditingModel(model);
-    setNewModel({ name: model.name });
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/models/${id}`);
+      setIsDeleteModalOpen(false);
+      setDeletingModel(null);
+      fetchModels();
+    } catch (error) {
+      console.error('Error deleting model:', error);
+    }
+  };
+
+  const openDeleteModal = (model) => {
+    setDeletingModel(model);
+    setIsDeleteModalOpen(true);
+  };
+
+  const openAddModal = () => {
+    setEditingModel(null);
+    setNewModel({ name: '', description: '' });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this model?')) {
-      try {
-        await axios.delete(`${API_URL}/models/${id}`);
-        fetchModels();
-      } catch (error) {
-        console.error('Error deleting model:', error);
-      }
-    }
+  const openEditModal = (model) => {
+    setEditingModel(model);
+    setNewModel({ name: model.name, description: model.description });
+    setIsModalOpen(true);
   };
 
   return (
@@ -94,11 +113,7 @@ const CategoryModels = () => {
         </div>
         {canAddModels && (
           <button
-            onClick={() => {
-              setEditingModel(null);
-              setNewModel({ name: '' });
-              setIsModalOpen(true);
-            }}
+            onClick={openAddModal}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
           >
             <FaPlus className="mr-2" />
@@ -115,7 +130,7 @@ const CategoryModels = () => {
               <div className="flex space-x-2">
                 {canEditModels && (
                   <button
-                    onClick={() => handleEdit(model)}
+                    onClick={() => openEditModal(model)}
                     className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
                   >
                     <FaEdit />
@@ -123,8 +138,8 @@ const CategoryModels = () => {
                 )}
                 {canDeleteModels && (
                   <button
-                    onClick={() => handleDelete(model._id)}
-                    className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                    onClick={() => openDeleteModal(model)}
+                    className="text-red-600 hover:text-red-800 ml-2"
                   >
                     <FaTrash />
                   </button>
@@ -155,9 +170,20 @@ const CategoryModels = () => {
                 type="text"
                 id="name"
                 value={newModel.name}
-                onChange={(e) => setNewModel({ name: e.target.value })}
+                onChange={(e) => setNewModel({ ...newModel, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                Model Description
+              </label>
+              <textarea
+                id="description"
+                value={newModel.description}
+                onChange={(e) => setNewModel({ ...newModel, description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex justify-end space-x-2">
@@ -178,6 +204,14 @@ const CategoryModels = () => {
           </form>
         </div>
       </Modal>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => handleDelete(deletingModel?._id)}
+        itemName={deletingModel?.name}
+        itemType="model"
+      />
     </div>
   );
 };

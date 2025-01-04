@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaMobileAlt, FaEdit, FaTrash } from 'react-icons/fa';
+import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 
 const ModelList = () => {
   const [models, setModels] = useState([]);
@@ -11,7 +12,9 @@ const ModelList = () => {
     description: ''
   });
   const [editingModel, setEditingModel] = useState(null);
+  const [deletingModel, setDeletingModel] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -57,15 +60,20 @@ const ModelList = () => {
     });
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this model?')) {
-      try {
-        await axios.delete(`http://localhost:3000/api/models/${id}`);
-        fetchData();
-      } catch (error) {
-        console.error('Error deleting model:', error);
-      }
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:3000/api/models/${deletingModel._id}`);
+      setIsDeleteModalOpen(false);
+      setDeletingModel(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting model:', error);
     }
+  };
+
+  const openDeleteModal = (model) => {
+    setDeletingModel(model);
+    setIsDeleteModalOpen(true);
   };
 
   if (isLoading) {
@@ -167,7 +175,7 @@ const ModelList = () => {
                       <FaEdit />
                     </button>
                     <button
-                      onClick={() => handleDelete(model._id)}
+                      onClick={() => openDeleteModal(model)}
                       className="text-red-600 hover:text-red-700"
                     >
                       <FaTrash />
@@ -180,6 +188,14 @@ const ModelList = () => {
           </div>
         </div>
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        itemName={deletingModel?.name}
+        itemType="model"
+      />
     </div>
   );
 };

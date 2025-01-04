@@ -3,6 +3,8 @@ import axios from 'axios';
 import { FaPlus, FaTrash, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { CheckIcon, XMarkIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { API_URL } from '../../config/api';
+import Modal from '../common/Modal';
+import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 
 const PartTypeManagement = () => {
   const [partTypes, setPartTypes] = useState({});
@@ -11,6 +13,10 @@ const PartTypeManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [editingType, setEditingType] = useState({ category: '', oldType: '', newType: '' });
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingItem, setDeletingItem] = useState(null);
+  const [deletingItemType, setDeletingItemType] = useState(''); // 'category' or 'type'
 
   useEffect(() => {
     fetchPartTypes();
@@ -52,6 +58,8 @@ const PartTypeManagement = () => {
   const handleDeleteCategory = async (category) => {
     try {
       await axios.delete(`${API_URL}/part-types/category/${category}`);
+      setIsDeleteModalOpen(false);
+      setDeletingItem(null);
       fetchPartTypes();
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -61,6 +69,8 @@ const PartTypeManagement = () => {
   const handleDeleteType = async (category, type) => {
     try {
       await axios.delete(`${API_URL}/part-types/${category}/${type}`);
+      setIsDeleteModalOpen(false);
+      setDeletingItem(null);
       fetchPartTypes();
     } catch (error) {
       console.error('Error deleting type:', error);
@@ -83,6 +93,12 @@ const PartTypeManagement = () => {
 
   const startEditingType = (category, type) => {
     setEditingType({ category, oldType: type, newType: type });
+  };
+
+  const openDeleteModal = (item, itemType, category = null) => {
+    setDeletingItem(itemType === 'category' ? item : { category, type: item });
+    setDeletingItemType(itemType);
+    setIsDeleteModalOpen(true);
   };
 
   if (loading) {
@@ -158,8 +174,8 @@ const PartTypeManagement = () => {
               <div className="flex items-center justify-between w-full">
                 <span className="font-medium text-indigo-800">{category}</span>
                 <button
-                  onClick={() => handleDeleteCategory(category)}
-                  className="text-red-600 hover:text-red-800"
+                  onClick={() => openDeleteModal(category, 'category')}
+                  className="text-red-600 hover:text-red-800 ml-2"
                 >
                   <FaTrash />
                 </button>
@@ -209,7 +225,7 @@ const PartTypeManagement = () => {
                             <PencilIcon className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => handleDeleteType(category, type)}
+                            onClick={() => openDeleteModal(type, 'type', category)}
                             className="text-red-600 hover:text-red-800 p-1.5"
                           >
                             <TrashIcon className="h-5 w-5" />
@@ -224,6 +240,24 @@ const PartTypeManagement = () => {
           </div>
         ))}
       </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <div className="p-6">
+          {/* Your existing form content */}
+        </div>
+      </Modal>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => 
+          deletingItemType === 'category' 
+            ? handleDeleteCategory(deletingItem)
+            : handleDeleteType(deletingItem.category, deletingItem.type)
+        }
+        itemName={deletingItemType === 'category' ? deletingItem : `${deletingItem?.type} (${deletingItem?.category})`}
+        itemType={deletingItemType === 'category' ? 'category' : 'part type'}
+      />
     </div>
   );
 };
